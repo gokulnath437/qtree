@@ -1,0 +1,33 @@
+pipeline {
+  agent any
+  environment {
+        GIT_REPO_URL = 'https://github.com/umeshqtree/qtree.git'
+        ANSIBLE_DIR = "/var/lib/jenkins/workspace/${params.Pipeline_name}/ansible/"
+    }
+  parameters {
+        string(name: "Pipeline_name", defaultValue: "", description: "enter pipeline name")
+        choice(name: 'Ansible_Action', choices: ['install.yml', 'reboot.yml','patching.yml', 'uninstall.yml'], description: 'Select Terraform actions')
+    }
+  stages {
+    stage('Checkout SCM') {
+        steps {
+         // Checkout the code from your Git repository
+            checkout([$class: 'GitSCM', branches: [[name: '*/master']], userRemoteConfigs: [[url: env.GIT_REPO_URL]]])
+         }
+        }
+        stage('Modify pem file permission') {
+        steps {
+             dir("${env.ANSIBLE_DIR}"){
+          sh "sudo chmod 400 devops.pem" //update your pem file name
+             }
+         }
+        }
+        stage('Execute the pipeline') {
+            steps {
+                dir("${env.ANSIBLE_DIR}") {
+                    sh "ansible-playbook -i host ${params.Ansible_Action}"
+                }
+            }
+        }
+}
+}
